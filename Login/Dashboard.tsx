@@ -20,9 +20,22 @@ import { Picker } from '@react-native-picker/picker';
 import RNFS from 'react-native-fs';
 import axios from 'axios';
 import Geolocation from '@react-native-community/geolocation';
+import VisitingCardForm from './VisitingCardForm';
+import { useNavigation } from '@react-navigation/native';
+import { StackNavigationProp } from '@react-navigation/stack';
+import { RootStackParamList } from '../App';
 
 // import { launchImageLibrary, launchCamera, ImagePickerResponse } from 'react-native-image-picker';
 const Dashboard = () => {
+
+
+
+    type NavigationProps = StackNavigationProp<RootStackParamList, 'VisitingCardForm'>;
+
+
+    const navigation = useNavigation<NavigationProps>();
+
+
     const getRandomCoordinates = () => {
         return {
             latitude: (28.5000 + Math.random() * 0.2).toFixed(6),  // Random latitude near 28.5
@@ -35,8 +48,11 @@ const Dashboard = () => {
     const [refreshing, setRefreshing] = useState(false);
     const [clinicData, setClinicData] = useState<any>(null);
     const [locationData, setLocationData] = useState<any>(null);
-
+    const [selectedImage, setSelectedImage] = useState<any>(null);
     const [modalVisible, setModalVisible] = useState(false);
+
+
+    // const navigation = useNavigation();
 
     useEffect(() => {
         const backAction = () => {
@@ -123,7 +139,8 @@ const Dashboard = () => {
             } else if (response.assets && response.assets.length > 0) {
                 // Alert.alert("comes in if")
                 let imageUri: any = response.assets[0].uri;
-
+                setSelectedImage(imageUri)
+                console.log("image fromt the dashbaord",imageUri)
                 // ✅ Fix file path issue for Android 10+
                 if (Platform.OS === 'android' && !imageUri.startsWith('file://')) {
                     imageUri = 'file://' + imageUri;
@@ -135,7 +152,7 @@ const Dashboard = () => {
                     // Convert image to base64
                     try {
                         const base64Image = await RNFS.readFile(imageUri, 'base64');
-                        await sendImageToAPI(base64Image);
+                        await sendImageToAPI(base64Image, imageUri);
                     } catch (error: any) {
                         console.error('Image Processing Error:', error);
                         Alert.alert(error);
@@ -148,22 +165,59 @@ const Dashboard = () => {
     };
 
 
-    const handleGalleryLaunch = () => {
+    const handleGalleryLaunch = async () => {
+        Geolocation.getCurrentPosition(
+            (position) => {
+                const { latitude, longitude } = position.coords;
+                setLocationData({ latitude, longitude });
+            },
+            (error) => {
+                console.error('Location Error:', error);
+                Alert.alert('Location Error', error.message);
+            },
+            { enableHighAccuracy: false, timeout: 25000, maximumAge: 25000 }
+        );
+
         launchImageLibrary(
             { mediaType: 'photo', quality: 1 },
-            (response) => {
+            async (response) => {  // Ensure async function for handling response
                 if (response.assets && response.assets.length > 0) {
-                    // setProfileImage(response.assets[0].uri ?? null);
+                    let imageUri:any = response.assets[0].uri;
+                    setSelectedImage(imageUri);
+                    console.log("Image from the dashboard:", imageUri);
+
+                    // ✅ Fix file path issue for Android 10+
+                    if (Platform.OS === 'android' && !imageUri.startsWith('file://')) {
+                        imageUri = 'file://' + imageUri;
+                    }
+
+                    if (imageUri) {
+                        console.log('Captured Image URI:', imageUri);
+
+                        // Convert image to base64
+                        try {
+                            const base64Image = await RNFS.readFile(imageUri, 'base64');
+                            await sendImageToAPI(base64Image, imageUri);
+                        } catch (error:any) {
+                            console.error('Image Processing Error:', error);
+                            Alert.alert('Error', error.message || 'Something went wrong');
+                        }
+                    } else {
+                        Alert.alert('Error', 'Could not retrieve image URI.');
+                    }
                 }
             }
         );
+
         setModalVisible(false);
     };
 
-    const sendImageToAPI = async (imageUrl: string) => {
+
+    const sendImageToAPI = async (imageUrl: string, imageUri:any) => {
         // const payload = { urls: [imageUrl] };
         const payload = { base64_images: [imageUrl] };
         console.log("payload", payload)
+        setModalVisible(false)
         setLoading(true);
         try {
             const response = await axios.post(
@@ -180,7 +234,17 @@ const Dashboard = () => {
             );
             console.log("url")
             console.log('API Response:', response.data);
-            setClinicData(response.data);
+            // setClinicData(response.data);
+      
+
+
+            navigation.navigate('VisitingCardForm', {
+                imageUrl: imageUri,
+                clinicData: response.data,
+                location: locationData
+            });
+
+
             setLoading(false);
         } catch (error: any) {
             console.error('API Error:', error);
@@ -203,6 +267,8 @@ const Dashboard = () => {
                     contentContainerStyle={styles.container}
                     refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
                 >
+
+                    {/* <VisitingCardForm /> */}
                     {/* Hide Dropdown and Camera Button when clinicData is available */}
                     {!clinicData && (
                         <>
@@ -237,6 +303,9 @@ const Dashboard = () => {
 
                     {clinicData && (
                         <View style={styles.dataContainer}>
+                            {selectedImage && (
+                                <Image source={{ uri: selectedImage }} style={{ width: 200, height: 200, marginTop: 10 }} />
+                            )}
                             <Text style={styles.dataValue}>Latitude: {locationData?.latitude || "28.62060787"}</Text>
                             <Text style={styles.dataValue}>Longitude: {locationData?.longitude || "77.3561458"}</Text>
                             {/* <Text style={styles.dataTitle}>{clinicData.name}</Text> */}
@@ -286,28 +355,33 @@ const Dashboard = () => {
                 </ScrollView>
             </View>
             {/* Footer Section */}
-            <View style={styles.footer}>
-                {["KYC", "Visiting Card", "Vehicle"].map((item, index) => (
-                    <TouchableOpacity
-                        key={index}
-                        style={[
-                            styles.footerButton,
-                            selected === item && styles.selectedButton,
-                        ]}
-                        onPress={(item)=>abc(item)}
-                        activeOpacity={0.7}
-                    >
-                        <Text
+            {
+            !clinicData ? <View style={styles.footerplz}>
+                <ScrollView horizontal={true} showsHorizontalScrollIndicator={false}>
+                    {["KYC", "Visiting Card", "Vehicle", "ID Card", "Business Card", "Document"].map((item, index) => (
+                        <TouchableOpacity
+                            key={index}
                             style={[
-                                styles.footerText,
-                                selected === item && styles.selectedText,
+                                styles.footerButton,
+                                selected === item && styles.selectedButton,
                             ]}
+                            onPress={() => abc(item)}
+                            activeOpacity={0.7}
                         >
-                            {item}
-                        </Text>
-                    </TouchableOpacity>
-                ))}
-            </View>
+                            <Text
+                                style={[
+                                    styles.footerText,
+                                    selected === item && styles.selectedText,
+                                ]}
+                            >
+                                {item}
+                            </Text>
+                        </TouchableOpacity>
+                    ))}
+                </ScrollView>
+            </View>: <View></View>
+            }
+
 
 
             <Modal
@@ -343,7 +417,7 @@ const styles = StyleSheet.create({
     disabled: { opacity: 0.5 },
     button: { paddingVertical: 10, paddingHorizontal: 20, borderRadius: 8, flexDirection: "column", alignItems: 'center', justifyContent: 'center', marginTop: 20 },
     cameraImage: { width: 250, height: 250, marginRight: 10 },
-    buttonText: { fontSize: 22, color: '#FF5722', fontWeight: '900', marginRight: 12 },
+    buttonText: { fontSize: 22, color: '#ED008C', fontWeight: '900', marginRight: 12 },
     loader: { marginTop: 20 },
     dataContainer: { padding: 16, backgroundColor: '#fff', width: "100%", display: "flex" },
     dataTitle: { fontSize: 22, fontWeight: 'bold', marginBottom: 10 },
@@ -369,50 +443,32 @@ const styles = StyleSheet.create({
     },
 
 
-
-    footer: {
+    footerplz: {  // Updated style name
         width: "100%",
-        backgroundColor: "#f8f9fa",
-        flexDirection: "row",
-        justifyContent: "space-around",
-        alignItems: "center",
-        paddingVertical: 12,
-        position: "absolute",
-        bottom: 0,
-        left: 0,
-        right: 0,
-        borderTopWidth: 1,
-        borderColor: "#ddd",
-        shadowColor: "#000",
-        shadowOffset: { width: 0, height: -2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 3,
-        elevation: 5,
-    },
-
-    footerButton: {
-        alignItems: "center",
-        flex: 1,
         paddingVertical: 10,
-        // borderRadius: 5, 
-        // Smooth corners
-        borderRightWidth:2
+        backgroundColor: "#f8f8f8",
     },
-
-    footerText: {
-        fontSize: 18,
-        fontWeight: "900",
-        color: "#003366",
-        textTransform: "capitalize",
+    footerButton: {
+        paddingVertical: 12,
+        paddingHorizontal: 20,
+        marginHorizontal: 8,
+        borderRadius: 8,
+        backgroundColor: "#003366",
     },
-
     selectedButton: {
-        backgroundColor: "#ddd", // Light grey highlight when selected
+        backgroundColor: "#2B3991",
+    },
+    footerText: {
+        color: "#ED008C",
+        fontSize: 16,
+        fontWeight:"900"
+    },
+    selectedText: {
+        color: "#fff",
+        fontWeight: "bold",
     },
 
-    selectedText: {
-        color: "#003366", // Darker text for selected button
-    },
+ 
 
 
     logo: {
@@ -443,17 +499,21 @@ const styles = StyleSheet.create({
     },
     modalButton: {
         padding: 15,
+        fontWeight:"900"
     },
     modalText: {
         fontSize: 18,
+        fontWeight: "500"
     },
     modalCancel: {
         padding: 15,
         alignItems: 'center',
+        fontWeight: "900"
     },
     cancelText: {
         color: 'red',
         fontSize: 16,
+        fontWeight: "900"
     },
 });
 

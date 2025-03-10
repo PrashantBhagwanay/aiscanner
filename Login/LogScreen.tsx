@@ -1,18 +1,21 @@
+import { useNavigation } from "@react-navigation/native";
 import React, { useState } from "react";
 import { View, Text, TextInput, TouchableOpacity, Dimensions, StyleSheet } from "react-native";
+import { RootStackParamList } from "../App";
 
 const { width } = Dimensions.get("window");
 
 const LogScreen = () => {
+    const navigation = useNavigation<RootStackParamList>();
     const [checked, setChecked] = useState(false);
 
     return (
         <View style={styles.container}>
-           <View style={{display:"flex",justifyContent:"center",alignItems:"center",paddingBottom:70}}>
+            <View style={{ display: "flex", justifyContent: "center", alignItems: "center", paddingBottom: 70 }}>
                 <Text style={styles.logo}>TAI</Text>
 
-               
-           </View>
+
+            </View>
             <Text style={styles.title}>Sign in your account</Text>
             <Text style={styles.label}>Email</Text>
             <TextInput style={styles.input} placeholder="ex: jon.smith@email.com" placeholderTextColor="#A0A0A0" />
@@ -32,7 +35,9 @@ const LogScreen = () => {
                 </Text>
             </TouchableOpacity>
 
-            <TouchableOpacity style={styles.signInButton}>
+            <TouchableOpacity style={styles.signInButton}
+                onPress={() => navigation.navigate("dashboard")}
+            >
                 <Text style={styles.buttonText}>SIGN IN</Text>
             </TouchableOpacity>
 
@@ -90,7 +95,7 @@ const styles = StyleSheet.create({
         color: "#2B3991",
         fontSize: 12,
         marginBottom: 15,
-        marginRight:25
+        marginRight: 25
     },
     checkboxContainer: {
         flexDirection: "row",
@@ -137,8 +142,8 @@ const styles = StyleSheet.create({
     signupLink: {
         color: "#2B3991",
         fontWeight: "bold",
-        marginBottom:-4,
-        marginLeft:110
+        marginBottom: -4,
+        marginLeft: 110
     },
 });
 

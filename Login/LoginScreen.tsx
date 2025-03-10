@@ -1,9 +1,13 @@
 import React from "react";
-import { View, Text, Image, StyleSheet, TouchableOpacity, Dimensions, Alert } from "react-native";
+import { View, Text, Image, StyleSheet, TouchableOpacity, Dimensions } from "react-native";
+import { useNavigation } from "@react-navigation/native";
+import { RootStackParamList } from "../App";
 
 const { width, height } = Dimensions.get("window");
 
 const LoginScreen = () => {
+    const navigation = useNavigation < RootStackParamList>(); // Hook to access navigation
+
     return (
         <View style={styles.container}>
             {/* Title */}
@@ -11,11 +15,11 @@ const LoginScreen = () => {
 
             {/* Buttons */}
             <View style={styles.buttonContainer}>
-                <TouchableOpacity style={styles.button} onPress={() => Alert.alert("SIGN IN pressed")}>
+                <TouchableOpacity style={styles.button} onPress={() => navigation.navigate("login")}>
                     <Text style={styles.buttonText}>SIGN IN</Text>
                 </TouchableOpacity>
 
-                <TouchableOpacity style={styles.button} onPress={() => Alert.alert("SIGN UP pressed")}>
+                <TouchableOpacity style={styles.button} onPress={() => navigation.navigate("signup")}>
                     <Text style={styles.buttonText}>SIGN UP</Text>
                 </TouchableOpacity>
             </View>
@@ -32,7 +36,6 @@ const styles = StyleSheet.create({
         backgroundColor: "#F8F8F8",
         alignItems: "center",
         justifyContent: "center",
-        // paddingHorizontal: 20,
     },
     title: {
         fontSize: 45,
@@ -41,10 +44,10 @@ const styles = StyleSheet.create({
         marginBottom: 20,
     },
     buttonContainer: {
-        marginTop:80,
-        width: "80%", // Ensures buttons are within a manageable width
+        marginTop: 80,
+        width: "80%",
         alignItems: "center",
-        marginBottom:150
+        marginBottom: 150,
     },
     button: {
         backgroundColor: "#2B3991",

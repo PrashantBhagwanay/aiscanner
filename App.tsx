@@ -45,6 +45,18 @@ import SignupScreen from "./Login/SignupScreen";
 import Dashboard from "./Login/Dashboard";
 import { View } from "react-native";
 import CustomCameraScreen from "./Login/CustomCameraScreen";
+import VisitingCardForm from "./Login/VisitingCardForm";
+import SuccessScreen from "./Login/SuccessScreen";
+import SavedCards from "./Login/SavedCards";
+
+
+export type RootStackParamList = {
+  navigate(arg0: string): void;
+  login: undefined;
+  signup: undefined;
+  onboard: undefined;
+  VisitingCardForm: { imageUrl: any; clinicData: any };
+};
 
 
 const Stack = createStackNavigator();
@@ -59,18 +71,30 @@ const App = () => {
     }, 3000);
   }, []);
 
+
+
+
+
   return (
-   <View style={{backgroundColor:"#fff",flex:1}}>
+    <View style={{ backgroundColor: "#fff", flex: 1 }}>
       <NavigationContainer>
         <Stack.Navigator screenOptions={{ headerShown: false }}>
           {isLoading ? (
             <Stack.Screen name="Splash" component={SplashScreen} />
           ) : (
-            <Stack.Screen name="Login" component={CustomCameraScreen} />
+            <>
+              <Stack.Screen name="onboard" component={LoginScreen} />
+              <Stack.Screen name="login" component={LogScreen} />
+              <Stack.Screen name="signup" component={SignupScreen} />
+              <Stack.Screen name="dashboard" component={Dashboard} />
+              <Stack.Screen name="VisitingCardForm" component={VisitingCardForm} />
+              <Stack.Screen name="success" component={SuccessScreen} />
+              <Stack.Screen name="SavedCards" component={SavedCards} />
+            </>
           )}
         </Stack.Navigator>
       </NavigationContainer>
-   </View>
+    </View>
   );
 };
 
